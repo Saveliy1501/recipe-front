@@ -11,7 +11,7 @@ export default function Landing() {
               to="/recipe"
               className="inline-block px-3 py-px mb-4 text-xs font-semibold tracking-wider text-white uppercase rounded-full bg-teal-600"
             >
-              Explore
+              Начать Готовить
             </Link>
           </div>
           <h2 className="max-w-lg mb-6 font-sans text-3xl font-bold leading-none tracking-tight text-gray-900 sm:text-4xl md:mx-auto">
@@ -38,9 +38,9 @@ export default function Landing() {
                   height="24"
                 />
               </svg>
-              <span className="relative">Share</span>
+              <span className="relative">Делись</span>
             </span>{" "}
-            your recipes to the world.
+            своими рецептами с миром.
           </h2>
           <p className="text-base text-gray-700 md:text-lg">
             Like to try out new foods? Have a recipe that you would like to

@@ -34,7 +34,7 @@ function classNames(...classes) {
 
 export default function Category({ editMode, recipe }) {
   const [selectedcategories, setSelectedcategories] = useState(
-    editMode ? recipe[0].category.name : categories[0].title
+  editMode && recipe && recipe[0] ? recipe[0].category.name : categories[0].title
   );
 
   const dispatch = useDispatch();

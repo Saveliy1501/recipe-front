@@ -1,12 +1,11 @@
-import { Fragment, useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { Fragment, useState } from "react";
+import { useSelector } from "react-redux";
 import { Link, Outlet } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   MenuAlt1Icon,
   BookmarkIcon,
   XIcon,
-  LogoutIcon,
   MenuIcon,
   UserIcon,
 } from "@heroicons/react/outline";
@@ -23,7 +22,6 @@ const navigation = [
   },
 ];
 
-const secondaryNavigation = [{ name: "Logout", icon: LogoutIcon }];
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -117,22 +115,7 @@ export default function Dashboard() {
                       </Link>
                     ))}
                   </div>
-                  <div className="mt-6 pt-6">
-                    <div className="px-2 space-y-1">
-                      {secondaryNavigation.map((item) => (
-                        <button
-                          key={item.name}
-                          className="group flex items-center w-full px-2 py-2 text-base font-medium rounded-md text-teal-100 hover:text-white hover:bg-teal-600"
-                        >
-                          <item.icon
-                            className="mr-4 h-6 w-6 text-teal-200"
-                            aria-hidden="true"
-                          />
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  
                 </nav>
               </div>
             </Transition.Child>
@@ -148,7 +131,7 @@ export default function Dashboard() {
           <div className="flex flex-col flex-grow bg-teal-700 pt-5 pb-4 overflow-y-auto">
             <div className="px-4">
               <Link to="/" className="font-normal text-xl  text-teal-200">
-                Mesob Recipe
+                Главная
               </Link>
             </div>
             <nav
@@ -176,22 +159,7 @@ export default function Dashboard() {
                   </Link>
                 ))}
               </div>
-              <div className="mt-6 pt-6">
-                <div className="px-2 space-y-1">
-                  {secondaryNavigation.map((item) => (
-                    <button
-                      key={item.name}
-                      className="group flex items-center w-full px-2 py-2 text-sm leading-6 font-medium rounded-md text-teal-100 hover:text-white hover:bg-teal-600"
-                    >
-                      <item.icon
-                        className="mr-4 h-6 w-6 text-teal-200"
-                        aria-hidden="true"
-                      />
-                      {item.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              
             </nav>
           </div>
         </div>

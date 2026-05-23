@@ -17,9 +17,25 @@ import {
 import {
   getDetailRecipe,
   likeRecipe,
+  unlikeRecipe,
   saveRecipe,
+  removeSavedRecipe,
 } from "../../redux/actions/recipes";
 import RecipeDelete from "./RecipeDelete";
+
+// Хук для сохранения состояния в localStorage
+function usePersistedState(key, defaultValue) {
+  const [state, setState] = useState(() => {
+    const persisted = localStorage.getItem(key);
+    return persisted ? JSON.parse(persisted) : defaultValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(state));
+  }, [key, state]);
+
+  return [state, setState];
+}
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -27,41 +43,94 @@ function classNames(...classes) {
 
 export default function RecipeDetail() {
   const dispatch = useDispatch();
-
   const [modal, setModal] = useState(false);
 
   const { detailRecipe } = useSelector((state) => state.recipes);
+  const { user } = useSelector((state) => state.user);
+  const currentUserId = user?.id;
 
   const { id } = useParams();
 
+  // Персистентные состояния для лайков и сохранений
+  const [likedRecipes, setLikedRecipes] = usePersistedState("likedRecipes", {});
+  const [savedRecipes, setSavedRecipes] = usePersistedState("savedRecipes", {});
+
+  // Локальные состояния для UI
+  const [likesCount, setLikesCount] = useState(0);
+  const [savesCount, setSavesCount] = useState(0);
+
   useEffect(() => {
     dispatch(getDetailRecipe(id));
-  }, []);
+  }, [dispatch, id]);
 
-  if (!detailRecipe || detailRecipe.length === 0)
-    return (
-      <div className="px-4 py-8 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-15">
-        <p className="text-3xl text-center text-gray-700">
-          Can not find any recipes, sorry (:
-        </p>
-      </div>
-    );
+  // Когда загружается рецепт, обновляем счётчики
+  useEffect(() => {
+    if (detailRecipe && Object.keys(detailRecipe).length > 0) {
+      setLikesCount(detailRecipe.total_number_of_likes || 0);
+      setSavesCount(detailRecipe.total_number_of_bookmarks || 0);
+    }
+  }, [detailRecipe]);
 
-  const procedures = JSON.parse(detailRecipe.procedure);
-  const ingredients = JSON.parse(detailRecipe.ingredients);
+  // Безопасный парсинг JSON
+  let procedures = [];
+  let ingredients = [];
 
-  const recipe = {
+  try {
+    procedures = JSON.parse(detailRecipe?.procedure || "[]");
+  } catch (e) {
+    console.error("Failed to parse procedures:", detailRecipe?.procedure);
+    procedures = [];
+  }
+
+  try {
+    ingredients = JSON.parse(detailRecipe?.ingredients || "[]");
+  } catch (e) {
+    console.error("Failed to parse ingredients:", detailRecipe?.ingredients);
+    ingredients = [];
+  }
+
+  const recipeDetails = {
     details: [
-      {
-        name: "Ingredients",
-        items: ingredients,
-      },
-      {
-        name: "Procedures",
-        items: procedures,
-      },
+      { name: "Ingredients", items: ingredients },
+      { name: "Procedures", items: procedures },
     ],
   };
+
+  // Обработчик лайка
+  const handleLike = () => {
+    if (likedRecipes[id]) {
+      dispatch(unlikeRecipe(id));
+      setLikedRecipes(prev => ({ ...prev, [id]: false }));
+      setLikesCount(prev => Math.max(prev - 1, 0));
+    } else {
+      dispatch(likeRecipe(id));
+      setLikedRecipes(prev => ({ ...prev, [id]: true }));
+      setLikesCount(prev => prev + 1);
+    }
+  };
+
+  // Обработчик сохранения
+  const handleSave = () => {
+    if (!currentUserId) return;
+
+    if (savedRecipes[id]) {
+      dispatch(removeSavedRecipe(currentUserId, id));
+      setSavedRecipes(prev => ({ ...prev, [id]: false }));
+      setSavesCount(prev => Math.max(prev - 1, 0));
+    } else {
+      dispatch(saveRecipe(currentUserId, id));
+      setSavedRecipes(prev => ({ ...prev, [id]: true }));
+      setSavesCount(prev => prev + 1);
+    }
+  };
+
+  if (!detailRecipe || Object.keys(detailRecipe).length === 0) {
+    return (
+      <div className="px-4 py-8 mx-auto text-center">
+        <p className="text-3xl text-gray-700">Loading recipe...</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -73,54 +142,58 @@ export default function RecipeDetail() {
                 <div className="w-full aspect-w-1 aspect-h-1">
                   <div>
                     <img
-                      src={detailRecipe.picture}
-                      alt=""
+                      src={detailRecipe.picture || "/placeholder-image.jpg"}
+                      alt={detailRecipe.title}
                       className="w-full h-full object-center object-cover sm:rounded-lg"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Recipe info */}
               <div className="mt-10 px-4 sm:px-0 sm:mt-16 lg:mt-0">
                 <div className="flex sm:flex-col1">
                   <h1 className="flex text-3xl font-extrabold tracking-tight text-gray-900">
                     {detailRecipe.title}
                   </h1>
 
-                  <Link to={`/recipe/${id}/edit/`}>
-                    <button
-                      type="button"
-                      className="group ml-4 py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-                    >
-                      <PencilIcon
-                        className="h-5 w-5 flex-shrink-0"
-                        aria-hidden="true"
-                      />
-                      <p className="hidden ml-1 group-hover:block">
-                        Edit Recipe
-                      </p>
-                    </button>
-                  </Link>
-                  <button
-                    type="button"
-                    className="group ml-4 py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-                    onClick={() => setModal(true)}
-                  >
-                    <TrashIcon
-                      className="h-5 w-5 flex-shrink-0"
-                      aria-hidden="true"
-                    />
-                    <p className="hidden ml-1 group-hover:block">
-                      Delete Recipe
-                    </p>
-                  </button>
+                  {/* Кнопки редактирования и удаления — только для автора */}
+                  {currentUserId === detailRecipe.author && (
+                    <div className="flex">
+                      <Link to={`/recipe/${id}/edit/`}>
+                        <button
+                          type="button"
+                          className="group ml-4 py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+                        >
+                          <PencilIcon
+                            className="h-5 w-5 flex-shrink-0"
+                            aria-hidden="true"
+                          />
+                          <p className="hidden ml-1 group-hover:block">
+                            Edit Recipe
+                          </p>
+                        </button>
+                      </Link>
+                      <button
+                        type="button"
+                        className="group ml-4 py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+                        onClick={() => setModal(true)}
+                      >
+                        <TrashIcon
+                          className="h-5 w-5 flex-shrink-0"
+                          aria-hidden="true"
+                        />
+                        <p className="hidden ml-1 group-hover:block">
+                          Delete Recipe
+                        </p>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-3">
                   <h2 className="sr-only">Recipe information</h2>
-                  <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-teal-600 ">
-                    {detailRecipe.category.name}
+                  <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-teal-600">
+                    {detailRecipe.category?.name || "Uncategorized"}
                   </span>
                 </div>
 
@@ -136,37 +209,35 @@ export default function RecipeDetail() {
                   <button
                     type="button"
                     className="group py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-                    onClick={() =>
-                      dispatch(saveRecipe(detailRecipe.author, id))
-                    }
+                    onClick={handleSave}
                   >
                     <BookmarkIcon
-                      className="h-6 w-6 flex-shrink-0"
+                      className={`h-6 w-6 transition-colors ${
+                        savedRecipes[id] ? "text-teal-500 fill-current" : ""
+                      }`}
                       aria-hidden="true"
                     />
                     <p className="hidden ml-1 group-hover:block">Save</p>
-                    <span className="ml-2">
-                      {detailRecipe.total_number_of_bookmarks}
-                    </span>
+                    <span className="ml-2">{savesCount}</span>
                   </button>
                   <button
                     type="button"
                     className="group py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-                    onClick={() => dispatch(likeRecipe(id))}
+                    onClick={handleLike}
                   >
                     <HeartIcon
-                      className="h-6 w-6 flex-shrink-0"
+                      className={`h-6 w-6 transition-colors ${
+                        likedRecipes[id] ? "text-red-500 fill-current" : ""
+                      }`}
                       aria-hidden="true"
                     />
                     <p className="hidden ml-1 group-hover:block">Like</p>
-                    <span className="ml-2">
-                      {detailRecipe.total_number_of_likes}
-                    </span>
+                    <span className="ml-2">{likesCount}</span>
                   </button>
                 </div>
 
                 <div className="inline-flex items-center text-teal-600 border py-1 px-2 mt-3 border-transparent bg-teal-50 rounded-md">
-                  <ClockIcon className="h-8 w-8 text-teal-600 pr-1" />{" "}
+                  <ClockIcon className="h-8 w-8 text-teal-600 pr-1" />
                   <span className="font-medium">{detailRecipe.cook_time}</span>
                 </div>
 
@@ -175,7 +246,7 @@ export default function RecipeDetail() {
                     Additional details
                   </h2>
                   <div className="border-t divide-y divide-gray-200">
-                    {recipe.details.map((detail) => (
+                    {recipeDetails.details.map((detail) => (
                       <Disclosure as="div" key={detail.name}>
                         {({ open }) => (
                           <>
@@ -214,7 +285,7 @@ export default function RecipeDetail() {
                                   className="border-t border-gray-200"
                                 >
                                   <dl>
-                                    <div className="bg-gray-50 px-4 py-5  sm:px-6">
+                                    <div className="bg-gray-50 px-4 py-5 sm:px-6">
                                       <dt className="text-sm font-normal text-gray-500">
                                         {idx + 1}) {item}
                                       </dt>
@@ -231,18 +302,6 @@ export default function RecipeDetail() {
                 </section>
               </div>
             </div>
-
-            <section
-              aria-labelledby="related-heading"
-              className="mt-10 border-t border-gray-200 py-16 px-4 sm:px-0"
-            >
-              {/* <h2
-                id="related-heading"
-                className="text-xl font-bold text-gray-900"
-              >
-                Other popular recipes
-              </h2> */}
-            </section>
           </div>
         </main>
       </div>

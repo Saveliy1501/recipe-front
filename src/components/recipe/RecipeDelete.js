@@ -1,17 +1,18 @@
-import { Fragment, useRef, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { Fragment, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationIcon } from "@heroicons/react/outline";
-
 import { deleteRecipe } from "../../redux/actions/recipes";
 
-export default function Logout({ modal, setModal, id }) {
+export default function RecipeDelete({ modal, setModal, id }) {
   const cancelButtonRef = useRef(null);
-
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { is_loading } = useSelector((state) => state.recipes);
 
   const handleDeleteClick = () => {
-    dispatch(deleteRecipe(id));
+    dispatch(deleteRecipe(id, navigate, setModal));
   };
 
   return (
@@ -35,7 +36,6 @@ export default function Logout({ modal, setModal, id }) {
             <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
           </Transition.Child>
 
-          {/* This element is to trick the browser into centering the modal contents. */}
           <span
             className="hidden sm:inline-block sm:align-middle sm:h-screen"
             aria-hidden="true"
@@ -69,7 +69,7 @@ export default function Logout({ modal, setModal, id }) {
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
-                        Are you sure you want to delete the recipe ?
+                        Are you sure you want to delete the recipe?
                       </p>
                     </div>
                   </div>
@@ -78,10 +78,13 @@ export default function Logout({ modal, setModal, id }) {
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  disabled={is_loading}
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm ${
+                    is_loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   onClick={handleDeleteClick}
                 >
-                  Delete
+                  {is_loading ? "Deleting..." : "Delete"}
                 </button>
                 <button
                   type="button"

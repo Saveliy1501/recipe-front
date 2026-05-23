@@ -8,6 +8,7 @@ import {
   GET_USER_RECIPES,
   CHANGE_AVATAR,
   GET_AVATAR,
+  REMOVE_SAVED_RECIPE,
 } from "../actions/types";
 
 const initialState = {
@@ -66,7 +67,13 @@ export default function (state = initialState, action) {
         isLoading: false,
         avatar: action.payload,
       };
-
+    case REMOVE_SAVED_RECIPE:
+      return {
+        ...state,
+        savedRecipes: state.savedRecipes?.filter(
+          (recipe) => recipe.id !== action.payload.recipe_id
+        ),
+      };
     default:
       return state;
   }

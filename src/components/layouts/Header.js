@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { Menu, Popover, Transition } from "@headlessui/react";
 import { SearchIcon } from "@heroicons/react/solid";
-import { BellIcon, MenuIcon, XIcon } from "@heroicons/react/outline";
+import {  MenuIcon, XIcon } from "@heroicons/react/outline";
 
 import Logout from "../accounts/Logout";
 import { loadUser, getAvatar } from "../../redux/actions/user";
@@ -49,7 +49,7 @@ export default function Header() {
                 <div className="flex md:absolute md:left-0 md:inset-y-0 lg:static xl:col-span-2">
                   <div className="flex-shrink-0 flex items-center">
                     <Link to="/" className="font-normal text-xl  text-teal-700">
-                      Mesob Recipe
+                      Главная
                     </Link>
                   </div>
                 </div>

@@ -8,6 +8,8 @@ import {
   EDIT_RECIPE,
   DELETE_RECIPE,
   SAVE_RECIPE,
+  UNLIKE_RECIPE,
+  REMOVE_SAVED_RECIPE,
 } from "./types";
 import axiosInstance from "../../utils/axios";
 import { tokenConfig } from "./auth";
@@ -55,7 +57,7 @@ export const getDetailRecipe = (id) => (dispatch, getState) => {
     });
 };
 
-export const createRecipe = (formData) => (dispatch, getState) => {
+export const createRecipe = (formData, navigate) => (dispatch, getState) => {
   dispatch({ type: RECIPE_LOADING });
 
   axiosInstance
@@ -65,6 +67,7 @@ export const createRecipe = (formData) => (dispatch, getState) => {
         type: CREATE_RECIPE,
         payload: res.data,
       });
+      navigate("/recipe");
     })
     .catch((err) => {
       dispatch({
@@ -74,7 +77,7 @@ export const createRecipe = (formData) => (dispatch, getState) => {
     });
 };
 
-export const editRecipe = (id, formData) => (dispatch, getState) => {
+export const editRecipe = (id, formData, navigate) => (dispatch, getState) => {
   dispatch({ type: RECIPE_LOADING });
 
   axiosInstance
@@ -84,6 +87,7 @@ export const editRecipe = (id, formData) => (dispatch, getState) => {
         type: EDIT_RECIPE,
         payload: res.data,
       });
+      navigate("/recipe");
     })
     .catch((err) => {
       dispatch({
@@ -93,7 +97,7 @@ export const editRecipe = (id, formData) => (dispatch, getState) => {
     });
 };
 
-export const deleteRecipe = (id) => (dispatch, getState) => {
+export const deleteRecipe = (id, navigate, closeModal) => (dispatch, getState) => {
   dispatch({ type: RECIPE_LOADING });
 
   axiosInstance
@@ -103,6 +107,8 @@ export const deleteRecipe = (id) => (dispatch, getState) => {
         type: DELETE_RECIPE,
         payload: res.data,
       });
+      if (closeModal) closeModal(false);
+      navigate("/recipe");
     })
     .catch((err) => {
       dispatch({
@@ -142,6 +148,46 @@ export const saveRecipe = (user_id, id) => (dispatch, getState) => {
       dispatch({
         type: SAVE_RECIPE,
         payload: res.data,
+      });
+    })
+    .catch((err) => {
+      dispatch({
+        type: GET_ERRORS,
+        payload: err.response,
+      });
+    });
+};
+
+// Убрать лайк
+export const unlikeRecipe = (id) => (dispatch, getState) => {
+  dispatch({ type: RECIPE_LOADING });
+
+  axiosInstance
+    .delete(`/recipe/${id}/like/`, tokenConfig(getState))
+    .then((res) => {
+      dispatch({
+        type: UNLIKE_RECIPE,
+        payload: { id },
+      });
+    })
+    .catch((err) => {
+      dispatch({
+        type: GET_ERRORS,
+        payload: err.response,
+      });
+    });
+};
+
+// Удалить рецепт из избранного
+export const removeSavedRecipe = (user_id, recipe_id) => (dispatch, getState) => {
+  dispatch({ type: RECIPE_LOADING });
+
+  axiosInstance
+    .delete(`/user/profile/${user_id}/bookmarks/?recipe_id=${recipe_id}`, tokenConfig(getState))
+    .then((res) => {
+      dispatch({
+        type: REMOVE_SAVED_RECIPE,
+        payload: { recipe_id, user_id },
       });
     })
     .catch((err) => {

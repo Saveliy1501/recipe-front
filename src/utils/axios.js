@@ -14,39 +14,42 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Проверяем, что это именно запрос на обновление токена
     if (
-      error.response.status === 401 &&
-      originalRequest.url ===
-        "https://recipe-backend-api.herokuapp.com/api/user/token/refresh/"
+      error.response?.status === 401 &&
+      originalRequest.url?.includes("/user/token/refresh/")
     ) {
-      window.location.href = "/user/login/";
+      window.location.href = "/login";
       return Promise.reject(error);
     }
 
     if (
-      error.response.data.code === "token_not_valid" &&
-      error.response.status === 401 &&
+      error.response?.data?.code === "token_not_valid" &&
+      error.response?.status === 401 &&
       !originalRequest._retry
     ) {
       originalRequest._retry = true;
-      const refreshToken = JSON.parse(localStorage.getItem("recipe")).refresh;
+      const refreshToken = JSON.parse(localStorage.getItem("recipe"))?.refresh;
+
+      if (!refreshToken) {
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
 
       return axiosInstance
-        .post("/user/token/refresh/", {
-          refresh: refreshToken,
-        })
+        .post("/user/token/refresh/", { refresh: refreshToken })
         .then((response) => {
           localStorage.setItem("recipe", JSON.stringify(response.data));
 
-          axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${
-            JSON.parse(localStorage.getItem("recipe")).access
-          }`;
-
-          originalRequest.headers["Authorization"] = `Bearer ${
-            JSON.parse(localStorage.getItem("recipe")).access
-          }`;
+          const newAccessToken = response.data.access;
+          axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+          originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
           return axiosInstance(originalRequest);
+        })
+        .catch((refreshError) => {
+          window.location.href = "/login";
+          return Promise.reject(refreshError);
         });
     }
     return Promise.reject(error);

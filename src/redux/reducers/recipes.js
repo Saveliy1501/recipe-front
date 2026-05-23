@@ -9,6 +9,8 @@ import {
   EDIT_RECIPE,
   DELETE_RECIPE,
   SAVE_RECIPE,
+  UNLIKE_RECIPE,
+  REMOVE_SAVED_RECIPE,
 } from "../actions/types";
 
 const initialState = {
@@ -47,6 +49,7 @@ export default function (state = initialState, action) {
       return {
         ...state,
         is_loading: false,
+        success: true,  
       };
     case EDIT_RECIPE:
       return {
@@ -57,7 +60,48 @@ export default function (state = initialState, action) {
       return {
         ...state,
         is_loading: false,
-        likedRecipe: action.payload,
+        // Обновляем счётчик лайков в списке рецептов
+        recipes: state.recipes?.map(recipe =>
+          recipe.id === action.payload.id
+            ? { ...recipe, total_number_of_likes: (recipe.total_number_of_likes || 0) + 1 }
+            : recipe
+        ),
+        // Обновляем счётчик лайков в детальном рецепте
+        detailRecipe: state.detailRecipe?.id === action.payload.id
+          ? { ...state.detailRecipe, total_number_of_likes: (state.detailRecipe.total_number_of_likes || 0) + 1 }
+          : state.detailRecipe,
+      };
+
+    case UNLIKE_RECIPE:
+      return {
+        ...state,
+        is_loading: false,
+        // Обновляем счётчик лайков в списке рецептов
+        recipes: state.recipes?.map(recipe =>
+          recipe.id === action.payload.id
+            ? { ...recipe, total_number_of_likes: Math.max((recipe.total_number_of_likes || 0) - 1, 0) }
+            : recipe
+        ),
+        // Обновляем счётчик лайков в детальном рецепте
+        detailRecipe: state.detailRecipe?.id === action.payload.id
+          ? { ...state.detailRecipe, total_number_of_likes: Math.max((state.detailRecipe.total_number_of_likes || 0) - 1, 0) }
+          : state.detailRecipe,
+      };
+
+    case REMOVE_SAVED_RECIPE:
+      return {
+        ...state,
+        is_loading: false,
+        // Обновляем счётчик сохранений в списке рецептов
+        recipes: state.recipes?.map(recipe =>
+          recipe.id === action.payload.recipe_id
+            ? { ...recipe, total_number_of_bookmarks: Math.max((recipe.total_number_of_bookmarks || 0) - 1, 0) }
+            : recipe
+        ),
+        // Обновляем счётчик сохранений в детальном рецепте
+        detailRecipe: state.detailRecipe?.id === action.payload.recipe_id
+          ? { ...state.detailRecipe, total_number_of_bookmarks: Math.max((state.detailRecipe.total_number_of_bookmarks || 0) - 1, 0) }
+          : state.detailRecipe,
       };
     case DELETE_RECIPE:
       return {

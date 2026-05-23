@@ -8,14 +8,12 @@ export default function TimePicker({ editMode, recipe }) {
 
   let defaultCookTime;
 
-  if (editMode) {
+  if (editMode && recipe && recipe[0] && recipe[0].cook_time) {
     defaultCookTime = recipe[0].cook_time.split(":");
   }
-
-  const [hours, setHours] = useState(editMode ? defaultCookTime[0] : "0");
-  const [minutes, setMinutes] = useState(editMode ? defaultCookTime[1] : "00");
-  const [seconds, setSeconds] = useState(editMode ? defaultCookTime[2] : "00");
-
+  const [hours, setHours] = useState(editMode && recipe && recipe[0] ? defaultCookTime[0] : "0");
+  const [minutes, setMinutes] = useState(editMode && recipe && recipe[0] ? defaultCookTime[1] : "00");
+  const [seconds, setSeconds] = useState(editMode && recipe && recipe[0] ? defaultCookTime[2] : "00");
   useEffect(() => {
     const cook_time = `${hours}:${minutes}:${seconds}`;
     dispatch(addCooktime(cook_time));
@@ -27,8 +25,8 @@ export default function TimePicker({ editMode, recipe }) {
       <p className="mt-1 text-sm text-gray-500">
         How long is it going to take to cook?
       </p>
-      <div class="mt-1 block p-1 w-40 shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm border border-gray-300 rounded-md">
-        <div class="flex">
+      <div className="mt-1 block p-1 w-40 shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm border border-gray-300 rounded-md">
+        <div className="flex">
           <select
             name="hours"
             class="bg-transparent text-xl appearance-none outline-none"
@@ -51,7 +49,7 @@ export default function TimePicker({ editMode, recipe }) {
             <option value="11">10</option>
             <option value="12">12</option>
           </select>
-          <span class="text-xl mr-3">:</span>
+          <span className="text-xl mr-3">:</span>
           <select
             name="minutes"
             class="bg-transparent text-xl appearance-none outline-none mr-4"
@@ -77,7 +75,7 @@ export default function TimePicker({ editMode, recipe }) {
           <span class="text-xl mr-3">:</span>
           <select
             name="seconds"
-            class="bg-transparent text-xl appearance-none outline-none"
+            className="bg-transparent text-xl appearance-none outline-none"
             onChange={(e) => setSeconds(e.target.value)}
           >
             <option value={seconds} selected disabled>
