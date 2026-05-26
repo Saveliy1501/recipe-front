@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PencilIcon } from "@heroicons/react/solid";
+import Recommendations from "../recipe/Recommendations";
 
 import {
   editUser,
@@ -13,33 +14,40 @@ export default function Profile() {
 
   const { user, avatar } = useSelector((state) => state.user);
 
-  const [username, setUsername] = useState(user.username);
-  const [email, setEmail] = useState(user.email);
-
+  const [username, setUsername] = useState(user?.username || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [picture, setPicture] = useState(null);
+  const [opassword, setOpassword] = useState("");
+  const [npassword, setNpassword] = useState("");
 
-  const [opassword, setOpassword] = useState(null);
-  const [npassword, setNpassword] = useState(null);
+  // Обновляем значения при изменении user
+  useEffect(() => {
+    if (user) {
+      setUsername(user.username);
+      setEmail(user.email);
+    }
+  }, [user]);
 
   const handleAvatarChange = (e) => {
     e.preventDefault();
-
     const formData = new FormData();
-
     formData.append("avatar", picture, picture.name);
-
     dispatch(changeAvatar(formData));
   };
 
   return (
     <>
+      {/* БЛОК РЕКОМЕНДАЦИЙ - в самом верху страницы профиля */}
+      <Recommendations />
+
+      {/* Существующий код профиля */}
       <div className="mt-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg leading-6 font-medium text-gray-900">
             Update Profile
           </h2>
           <div className="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="mt-4  md:mt-0">
+            <div className="mt-4 md:mt-0">
               <div className="flex items-center">
                 <label htmlFor="picture" className="relative cursor-pointer">
                   <img
@@ -84,7 +92,7 @@ export default function Profile() {
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 focus:z-10 sm:text-sm"
                   placeholder="Username"
-                  defaultValue={user.username}
+                  value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
@@ -100,7 +108,7 @@ export default function Profile() {
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
-                  defaultValue={user.email}
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>

@@ -22,19 +22,18 @@ const navigation = [
   },
 ];
 
-
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const { user, avatar } = useSelector((state) => state.user);
 
   return (
     <>
       <div className="min-h-full">
+        {/* Sidebar для мобильных */}
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog
             as="div"
@@ -78,15 +77,12 @@ export default function Dashboard() {
                       onClick={() => setSidebarOpen(false)}
                     >
                       <span className="sr-only">Close sidebar</span>
-                      <XIcon
-                        className="h-6 w-6 text-white"
-                        aria-hidden="true"
-                      />
+                      <XIcon className="h-6 w-6 text-white" aria-hidden="true" />
                     </button>
                   </div>
                 </Transition.Child>
                 <div className="px-4">
-                  <Link to="/" className="font-normal text-xl  text-teal-200">
+                  <Link to="/" className="font-normal text-xl text-teal-200">
                     Mesob Recipe
                   </Link>
                 </div>
@@ -115,22 +111,18 @@ export default function Dashboard() {
                       </Link>
                     ))}
                   </div>
-                  
                 </nav>
               </div>
             </Transition.Child>
-            <div className="flex-shrink-0 w-14" aria-hidden="true">
-              {/* Dummy element to force sidebar to shrink to fit close icon */}
-            </div>
+            <div className="flex-shrink-0 w-14" aria-hidden="true" />
           </Dialog>
         </Transition.Root>
 
         {/* Static sidebar for desktop */}
         <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-          {/* Sidebar component, swap this element with another sidebar if you like */}
           <div className="flex flex-col flex-grow bg-teal-700 pt-5 pb-4 overflow-y-auto">
             <div className="px-4">
-              <Link to="/" className="font-normal text-xl  text-teal-200">
+              <Link to="/" className="font-normal text-xl text-teal-200">
                 Главная
               </Link>
             </div>
@@ -159,7 +151,6 @@ export default function Dashboard() {
                   </Link>
                 ))}
               </div>
-              
             </nav>
           </div>
         </div>
@@ -204,8 +195,10 @@ export default function Dashboard() {
             </div>
           </div>
           <main className="flex-1 pb-8">
-            {/* Page header */}
-            <Outlet />
+            {/* Только Outlet - рекомендации убраны */}
+            <div className="mt-8">
+              <Outlet />
+            </div>
           </main>
         </div>
       </div>

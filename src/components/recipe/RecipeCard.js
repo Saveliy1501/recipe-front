@@ -50,12 +50,15 @@ export default function RecipeCard({ recipes, quickview }) {
     setLocalLikes(prev => ({ ...prev, [recipeId]: newLikeCount }));
     
     try {
+      // Вызываем action и ждем его завершения
       if (currentIsLiked) {
         await dispatch(unlikeRecipe(recipeId));
       } else {
         await dispatch(likeRecipe(recipeId));
       }
+      // Здесь можно обновить счетчики из ответа сервера, если нужно
     } catch (error) {
+      // Откат при ошибке
       setLikedRecipes(prev => ({ ...prev, [recipeId]: currentIsLiked }));
       setLocalLikes(prev => ({ ...prev, [recipeId]: currentLikeCount }));
       console.error("Like/Unlike error:", error);
@@ -86,7 +89,6 @@ export default function RecipeCard({ recipes, quickview }) {
         await dispatch(saveRecipe(currentUserId, recipeId));
       }
     } catch (error) {
-      // Откат при ошибке
       setSavedRecipes(prev => ({ ...prev, [recipeId]: currentIsSaved }));
       setLocalSaves(prev => ({ ...prev, [recipeId]: currentSaveCount }));
       console.error("Save/Remove error:", error);

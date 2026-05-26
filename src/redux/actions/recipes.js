@@ -10,6 +10,9 @@ import {
   SAVE_RECIPE,
   UNLIKE_RECIPE,
   REMOVE_SAVED_RECIPE,
+  GET_RECOMMENDATIONS, 
+  LOAD_USER_LIKES,     
+  LOAD_USER_SAVES,
 } from "./types";
 import axiosInstance from "../../utils/axios";
 import { tokenConfig } from "./auth";
@@ -168,7 +171,7 @@ export const saveRecipe = (user_id, id) => async (dispatch, getState) => {
     const res = await axiosInstance.post(`/user/profile/${user_id}/bookmarks/`, body, tokenConfig(getState));
     dispatch({
       type: SAVE_RECIPE,
-      payload: res.data,
+      payload: { id, user_id },  // ВАЖНО: передаем id рецепта
     });
     return { id, user_id };
   } catch (err) {
@@ -197,3 +200,19 @@ export const removeSavedRecipe = (user_id, recipe_id) => async (dispatch, getSta
     throw err;
   }
 };
+
+export const getRecommendations = () => async (dispatch, getState) => {
+  try {
+    const res = await axiosInstance.get('/recipe/recommendations/', tokenConfig(getState));
+    dispatch({
+      type: GET_RECOMMENDATIONS,
+      payload: res.data,
+    });
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+  }
+};
+

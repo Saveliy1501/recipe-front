@@ -8,21 +8,21 @@ import { likeRecipe, unlikeRecipe, saveRecipe, removeSavedRecipe } from "../../r
 import { usePersistedState } from "../../hooks/usePersistedState";
 
 export default function QuickView({ open, setOpen, id }) {
-  const { recipes } = useSelector((state) => state.recipes);
+  const { recipes, recommendations } = useSelector((state) => state.recipes);
   const { user } = useSelector((state) => state.user);
   const currentUserId = user?.id;
   const dispatch = useDispatch();
 
+  // Ищем рецепт сначала в recipes, потом в recommendations
+  const recipe = recipes?.find((r) => r.id === id) || recommendations?.find((r) => r.id === id);
+  
   const [likedRecipes, setLikedRecipes] = usePersistedState("likedRecipes", {});
   const [savedRecipes, setSavedRecipes] = usePersistedState("savedRecipes", {});
   
-  // Локальные счетчики
   const [likesCount, setLikesCount] = useState(0);
   const [savesCount, setSavesCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
-
-  const recipe = recipes?.find((r) => r.id === id);
 
   // Обновляем счетчики при изменении рецепта
   useEffect(() => {
@@ -46,7 +46,6 @@ export default function QuickView({ open, setOpen, id }) {
     
     setIsLikeLoading(true);
     
-    // Оптимистичное обновление UI
     const newIsLiked = !currentIsLiked;
     const newLikeCount = newIsLiked ? currentLikeCount + 1 : Math.max(currentLikeCount - 1, 0);
     
@@ -60,7 +59,6 @@ export default function QuickView({ open, setOpen, id }) {
         await dispatch(likeRecipe(id));
       }
     } catch (error) {
-      // Откат при ошибке
       setLikedRecipes(prev => ({ ...prev, [id]: currentIsLiked }));
       setLikesCount(currentLikeCount);
       console.error("Like error:", error);
@@ -77,7 +75,6 @@ export default function QuickView({ open, setOpen, id }) {
     
     setIsSaveLoading(true);
     
-    // Оптимистичное обновление UI
     const newIsSaved = !currentIsSaved;
     const newSaveCount = newIsSaved ? currentSaveCount + 1 : Math.max(currentSaveCount - 1, 0);
     
@@ -91,7 +88,6 @@ export default function QuickView({ open, setOpen, id }) {
         await dispatch(saveRecipe(currentUserId, id));
       }
     } catch (error) {
-      // Откат при ошибке
       setSavedRecipes(prev => ({ ...prev, [id]: currentIsSaved }));
       setSavesCount(currentSaveCount);
       console.error("Save error:", error);
