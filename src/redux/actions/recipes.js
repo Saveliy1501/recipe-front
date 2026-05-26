@@ -30,7 +30,6 @@ export const getRecipes = (searchTerm = '', categoryName = '', authorName = '', 
     params.append('author__username', authorName);
   }
   
-  // Добавляем параметры сортировки
   if (ordering) {
     params.append('ordering', ordering);
   }
@@ -136,82 +135,65 @@ export const deleteRecipe = (id, navigate, closeModal) => (dispatch, getState) =
     });
 };
 
-export const likeRecipe = (id) => (dispatch, getState) => {
-  dispatch({ type: RECIPE_LOADING });
-
-  axiosInstance
-    .post(`/recipe/${id}/like/`, null, tokenConfig(getState))
-    .then((res) => {
-      dispatch({
-        type: LIKE_RECIPE,
-        payload: res.data,
-      });
-    })
-    .catch((err) => {
-      dispatch({
-        type: GET_ERRORS,
-        payload: err.response,
-      });
+export const likeRecipe = (id) => async (dispatch, getState) => {
+  try {
+    await axiosInstance.post(`/recipe/${id}/like/`, null, tokenConfig(getState));
+    return { id };
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
     });
+    throw err;
+  }
 };
 
-export const saveRecipe = (user_id, id) => (dispatch, getState) => {
-  dispatch({ type: RECIPE_LOADING });
-
-  const body = JSON.stringify({ id });
-
-  axiosInstance
-    .post(`/user/profile/${user_id}/bookmarks/`, body, tokenConfig(getState))
-    .then((res) => {
-      dispatch({
-        type: SAVE_RECIPE,
-        payload: res.data,
-      });
-    })
-    .catch((err) => {
-      dispatch({
-        type: GET_ERRORS,
-        payload: err.response,
-      });
+export const unlikeRecipe = (id) => async (dispatch, getState) => {
+  try {
+    await axiosInstance.delete(`/recipe/${id}/like/`, tokenConfig(getState));
+    return { id };
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
     });
+    throw err;
+  }
 };
 
-// Убрать лайк
-export const unlikeRecipe = (id) => (dispatch, getState) => {
-  dispatch({ type: RECIPE_LOADING });
-
-  axiosInstance
-    .delete(`/recipe/${id}/like/`, tokenConfig(getState))
-    .then((res) => {
-      dispatch({
-        type: UNLIKE_RECIPE,
-        payload: { id },
-      });
-    })
-    .catch((err) => {
-      dispatch({
-        type: GET_ERRORS,
-        payload: err.response,
-      });
+// ИСПРАВЛЕННЫЙ saveRecipe - возвращает Promise
+export const saveRecipe = (user_id, id) => async (dispatch, getState) => {
+  try {
+    const body = JSON.stringify({ id });
+    const res = await axiosInstance.post(`/user/profile/${user_id}/bookmarks/`, body, tokenConfig(getState));
+    dispatch({
+      type: SAVE_RECIPE,
+      payload: res.data,
     });
+    return { id, user_id };
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+    throw err;
+  }
 };
 
-// Удалить рецепт из избранного
-export const removeSavedRecipe = (user_id, recipe_id) => (dispatch, getState) => {
-  dispatch({ type: RECIPE_LOADING });
-
-  axiosInstance
-    .delete(`/user/profile/${user_id}/bookmarks/?recipe_id=${recipe_id}`, tokenConfig(getState))
-    .then((res) => {
-      dispatch({
-        type: REMOVE_SAVED_RECIPE,
-        payload: { recipe_id, user_id },
-      });
-    })
-    .catch((err) => {
-      dispatch({
-        type: GET_ERRORS,
-        payload: err.response,
-      });
+// ИСПРАВЛЕННЫЙ removeSavedRecipe - возвращает Promise
+export const removeSavedRecipe = (user_id, recipe_id) => async (dispatch, getState) => {
+  try {
+    const res = await axiosInstance.delete(`/user/profile/${user_id}/bookmarks/?recipe_id=${recipe_id}`, tokenConfig(getState));
+    dispatch({
+      type: REMOVE_SAVED_RECIPE,
+      payload: { recipe_id, user_id },
     });
+    return { recipe_id, user_id };
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+    throw err;
+  }
 };
