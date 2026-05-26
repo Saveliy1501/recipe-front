@@ -1,10 +1,10 @@
 import { Fragment, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
 import { Menu, Popover, Transition } from "@headlessui/react";
 import { SearchIcon } from "@heroicons/react/solid";
-import {  MenuIcon, XIcon } from "@heroicons/react/outline";
+import { MenuIcon, XIcon } from "@heroicons/react/outline";
 
 import Logout from "../accounts/Logout";
 import { loadUser, getAvatar } from "../../redux/actions/user";
@@ -20,15 +20,35 @@ export default function Header() {
   const { user, avatar } = useSelector((state) => state.user);
 
   const [modal, setModal] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (token) {
       dispatch(loadUser());
       dispatch(getAvatar());
     }
-  }, [token]);
+  }, [token, dispatch]);
+
+  // Обработчик поиска при нажатии Enter
+  const handleSearchKeyPress = (e) => {
+    if (e.key === "Enter") {
+      const query = e.target.value.trim();
+      if (query) {
+        navigate(`/recipe?search=${encodeURIComponent(query)}`);
+      } else {
+        navigate("/recipe");
+      }
+      setSearchValue("");
+    }
+  };
+
+  // Обработчик изменения значения в поле поиска
+  const handleSearchChange = (e) => {
+    setSearchValue(e.target.value);
+  };
 
   return (
     <>
@@ -48,7 +68,7 @@ export default function Header() {
               <div className="relative flex justify-between xl:grid xl:grid-cols-12 lg:gap-8">
                 <div className="flex md:absolute md:left-0 md:inset-y-0 lg:static xl:col-span-2">
                   <div className="flex-shrink-0 flex items-center">
-                    <Link to="/" className="font-normal text-xl  text-teal-700">
+                    <Link to="/" className="font-normal text-xl text-teal-700">
                       Главная
                     </Link>
                   </div>
@@ -72,6 +92,9 @@ export default function Header() {
                           className="block w-full bg-white border border-gray-300 rounded-md py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:outline-none focus:text-gray-900 focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
                           placeholder="Search"
                           type="search"
+                          value={searchValue}
+                          onChange={handleSearchChange}
+                          onKeyPress={handleSearchKeyPress}
                         />
                       </div>
                     </div>

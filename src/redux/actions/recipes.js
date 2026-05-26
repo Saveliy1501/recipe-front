@@ -14,16 +14,34 @@ import {
 import axiosInstance from "../../utils/axios";
 import { tokenConfig } from "./auth";
 
-export const getRecipes = () => (dispatch) => {
+export const getRecipes = (searchTerm = '', categoryName = '', authorName = '', ordering = '') => (dispatch) => {
   dispatch({ type: RECIPE_LOADING });
 
-  const config = {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  };
+  let url = '/recipe/';
+  const params = new URLSearchParams();
+  
+  if (searchTerm) {
+    params.append('search', searchTerm);
+  }
+  if (categoryName) {
+    params.append('category__name', categoryName);
+  }
+  if (authorName) {
+    params.append('author__username', authorName);
+  }
+  
+  // Добавляем параметры сортировки
+  if (ordering) {
+    params.append('ordering', ordering);
+  }
+  
+  const queryString = params.toString();
+  if (queryString) {
+    url = `/recipe/?${queryString}`;
+  }
+
   axiosInstance
-    .get("/recipe/", null, config)
+    .get(url)
     .then((res) => {
       dispatch({
         type: GET_RECIPES,

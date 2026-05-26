@@ -18,23 +18,29 @@ export default function RecipeCard({ recipes, quickview }) {
   const [likedRecipes, setLikedRecipes] = usePersistedState("likedRecipes", {});
   const [savedRecipes, setSavedRecipes] = usePersistedState("savedRecipes", {});
 
-  const handleLike = (recipeId) => {
+  const handleLike = (recipeId, currentLikesCount) => {
     if (likedRecipes[recipeId]) {
+      // Убираем лайк
       dispatch(unlikeRecipe(recipeId));
       setLikedRecipes(prev => ({ ...prev, [recipeId]: false }));
+      // Обновляем счетчик через Redux (это обновит и отображение)
+      // unlikeRecipe уже должен обновлять счетчик, если в actions правильно настроено
     } else {
+      // Ставим лайк
       dispatch(likeRecipe(recipeId));
       setLikedRecipes(prev => ({ ...prev, [recipeId]: true }));
     }
   };
 
-  const handleSave = (recipeId) => {
+  const handleSave = (recipeId, currentSavesCount) => {
     if (!currentUserId) return;
 
     if (savedRecipes[recipeId]) {
+      // Убираем сохранение
       dispatch(removeSavedRecipe(currentUserId, recipeId));
       setSavedRecipes(prev => ({ ...prev, [recipeId]: false }));
     } else {
+      // Сохраняем
       dispatch(saveRecipe(currentUserId, recipeId));
       setSavedRecipes(prev => ({ ...prev, [recipeId]: true }));
     }
@@ -87,7 +93,7 @@ export default function RecipeCard({ recipes, quickview }) {
               </div>
 
               <div className="flex space-x-2">
-                <button type="button" onClick={() => handleLike(recipe.id)} className="focus:outline-none">
+                <button type="button" onClick={() => handleLike(recipe.id, recipe.total_number_of_likes)} className="focus:outline-none">
                   <HeartIcon
                     className={`h-6 w-6 transition-colors ${
                       likedRecipes[recipe.id] ? "text-red-500 fill-current" : "text-gray-400 hover:text-red-500"
@@ -96,7 +102,7 @@ export default function RecipeCard({ recipes, quickview }) {
                   />
                 </button>
                 <div className="w-px h-6 bg-gray-400" />
-                <button type="button" onClick={() => handleSave(recipe.id)} className="focus:outline-none">
+                <button type="button" onClick={() => handleSave(recipe.id, recipe.total_number_of_bookmarks)} className="focus:outline-none">
                   <BookmarkIcon
                     className={`h-6 w-6 transition-colors ${
                       savedRecipes[recipe.id] ? "text-teal-500 fill-current" : "text-gray-400 hover:text-teal-500"
