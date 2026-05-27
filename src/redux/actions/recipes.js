@@ -216,3 +216,14 @@ export const getRecommendations = () => async (dispatch, getState) => {
   }
 };
 
+export const updateLikeCount = (recipeId, newCount) => ({
+  type: UPDATE_LIKE_COUNT,
+  payload: { recipeId, newCount }
+});
+
+// Экшен для обновления счетчика сохранений
+export const updateSaveCount = (recipeId, newCount) => ({
+  type: UPDATE_SAVE_COUNT,
+  payload: { recipeId, newCount }
+});
+

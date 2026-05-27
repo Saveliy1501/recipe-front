@@ -13,6 +13,7 @@ import {
   TrashIcon,
   ClockIcon,
 } from "@heroicons/react/outline";
+import { HeartIcon as HeartSolid } from "@heroicons/react/solid";
 
 import {
   getDetailRecipe,
@@ -23,20 +24,6 @@ import {
 } from "../../redux/actions/recipes";
 import RecipeDelete from "./RecipeDelete";
 
-// Хук для сохранения состояния в localStorage
-function usePersistedState(key, defaultValue) {
-  const [state, setState] = useState(() => {
-    const persisted = localStorage.getItem(key);
-    return persisted ? JSON.parse(persisted) : defaultValue;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(state));
-  }, [key, state]);
-
-  return [state, setState];
-}
-
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
@@ -44,6 +31,9 @@ function classNames(...classes) {
 export default function RecipeDetail() {
   const dispatch = useDispatch();
   const [modal, setModal] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [isSaveLoading, setIsSaveLoading] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   const { detailRecipe } = useSelector((state) => state.recipes);
   const { user } = useSelector((state) => state.user);
@@ -51,41 +41,60 @@ export default function RecipeDetail() {
 
   const { id } = useParams();
 
-  // Персистентные состояния для лайков и сохранений
-  const [likedRecipes, setLikedRecipes] = usePersistedState("likedRecipes", {});
-  const [savedRecipes, setSavedRecipes] = usePersistedState("savedRecipes", {});
+  // Функции для работы с localStorage
+  const getLikedRecipes = () => JSON.parse(localStorage.getItem("likedRecipes")) || {};
+  const getSavedRecipes = () => JSON.parse(localStorage.getItem("savedRecipes")) || {};
 
-  // Локальные состояния для UI
-  const [likesCount, setLikesCount] = useState(0);
-  const [savesCount, setSavesCount] = useState(0);
+  // Получаем актуальные значения из localStorage
+  const likedRecipes = getLikedRecipes();
+  const savedRecipes = getSavedRecipes();
+  
+  const [isLiked, setIsLiked] = useState(likedRecipes[id] || false);
+  const [isSaved, setIsSaved] = useState(savedRecipes[id] || false);
+  const [likesCount, setLikesCount] = useState(
+    likedRecipes[`count_${id}`] !== undefined 
+      ? likedRecipes[`count_${id}`] 
+      : (detailRecipe?.total_number_of_likes || 0)
+  );
+  const [savesCount, setSavesCount] = useState(
+    savedRecipes[`count_${id}`] !== undefined 
+      ? savedRecipes[`count_${id}`] 
+      : (detailRecipe?.total_number_of_bookmarks || 0)
+  );
+
+  // Функция для обновления UI
+  const refreshUI = () => {
+    setForceUpdate(prev => prev + 1);
+  };
+
+  // Синхронизация с localStorage при загрузке рецепта
+  useEffect(() => {
+    if (detailRecipe && Object.keys(detailRecipe).length > 0) {
+      const liked = getLikedRecipes();
+      const saved = getSavedRecipes();
+      setIsLiked(liked[id] || false);
+      setIsSaved(saved[id] || false);
+      setLikesCount(liked[`count_${id}`] !== undefined ? liked[`count_${id}`] : (detailRecipe.total_number_of_likes || 0));
+      setSavesCount(saved[`count_${id}`] !== undefined ? saved[`count_${id}`] : (detailRecipe.total_number_of_bookmarks || 0));
+    }
+  }, [detailRecipe, id, forceUpdate]);
 
   useEffect(() => {
     dispatch(getDetailRecipe(id));
   }, [dispatch, id]);
 
-  // Когда загружается рецепт, обновляем счётчики
-  useEffect(() => {
-    if (detailRecipe && Object.keys(detailRecipe).length > 0) {
-      setLikesCount(detailRecipe.total_number_of_likes || 0);
-      setSavesCount(detailRecipe.total_number_of_bookmarks || 0);
-    }
-  }, [detailRecipe]);
-
-  // Безопасный парсинг JSON
   let procedures = [];
   let ingredients = [];
 
   try {
     procedures = JSON.parse(detailRecipe?.procedure || "[]");
   } catch (e) {
-    console.error("Failed to parse procedures:", detailRecipe?.procedure);
     procedures = [];
   }
 
   try {
     ingredients = JSON.parse(detailRecipe?.ingredients || "[]");
   } catch (e) {
-    console.error("Failed to parse ingredients:", detailRecipe?.ingredients);
     ingredients = [];
   }
 
@@ -96,31 +105,93 @@ export default function RecipeDetail() {
     ],
   };
 
-  // Обработчик лайка
-  const handleLike = () => {
-    if (likedRecipes[id]) {
-      dispatch(unlikeRecipe(id));
-      setLikedRecipes(prev => ({ ...prev, [id]: false }));
-      setLikesCount(prev => Math.max(prev - 1, 0));
-    } else {
-      dispatch(likeRecipe(id));
-      setLikedRecipes(prev => ({ ...prev, [id]: true }));
-      setLikesCount(prev => prev + 1);
+  const handleLike = async () => {
+    if (isLikeLoading) return;
+    
+    const currentIsLiked = isLiked;
+    const currentLikeCount = likesCount;
+    const newIsLiked = !currentIsLiked;
+    const newLikeCount = newIsLiked ? currentLikeCount + 1 : Math.max(currentLikeCount - 1, 0);
+    
+    setIsLikeLoading(true);
+    
+    // Обновляем UI
+    setIsLiked(newIsLiked);
+    setLikesCount(newLikeCount);
+    
+    // Обновляем localStorage
+    const currentLiked = getLikedRecipes();
+    const newLikedRecipes = { 
+      ...currentLiked, 
+      [id]: newIsLiked,
+      [`count_${id}`]: newLikeCount
+    };
+    localStorage.setItem("likedRecipes", JSON.stringify(newLikedRecipes));
+    
+    try {
+      if (currentIsLiked) {
+        await dispatch(unlikeRecipe(id));
+      } else {
+        await dispatch(likeRecipe(id));
+      }
+    } catch (error) {
+      // Откат
+      setIsLiked(currentIsLiked);
+      setLikesCount(currentLikeCount);
+      const oldLikedRecipes = { 
+        ...currentLiked, 
+        [id]: currentIsLiked,
+        [`count_${id}`]: currentLikeCount
+      };
+      localStorage.setItem("likedRecipes", JSON.stringify(oldLikedRecipes));
+      console.error("Like error:", error);
+    } finally {
+      setIsLikeLoading(false);
     }
   };
 
-  // Обработчик сохранения
-  const handleSave = () => {
-    if (!currentUserId) return;
-
-    if (savedRecipes[id]) {
-      dispatch(removeSavedRecipe(currentUserId, id));
-      setSavedRecipes(prev => ({ ...prev, [id]: false }));
-      setSavesCount(prev => Math.max(prev - 1, 0));
-    } else {
-      dispatch(saveRecipe(currentUserId, id));
-      setSavedRecipes(prev => ({ ...prev, [id]: true }));
-      setSavesCount(prev => prev + 1);
+  const handleSave = async () => {
+    if (!currentUserId || isSaveLoading) return;
+    
+    const currentIsSaved = isSaved;
+    const currentSaveCount = savesCount;
+    const newIsSaved = !currentIsSaved;
+    const newSaveCount = newIsSaved ? currentSaveCount + 1 : Math.max(currentSaveCount - 1, 0);
+    
+    setIsSaveLoading(true);
+    
+    // Обновляем UI
+    setIsSaved(newIsSaved);
+    setSavesCount(newSaveCount);
+    
+    // Обновляем localStorage
+    const currentSaved = getSavedRecipes();
+    const newSavedRecipes = { 
+      ...currentSaved, 
+      [id]: newIsSaved,
+      [`count_${id}`]: newSaveCount
+    };
+    localStorage.setItem("savedRecipes", JSON.stringify(newSavedRecipes));
+    
+    try {
+      if (currentIsSaved) {
+        await dispatch(removeSavedRecipe(currentUserId, id));
+      } else {
+        await dispatch(saveRecipe(currentUserId, id));
+      }
+    } catch (error) {
+      // Откат
+      setIsSaved(currentIsSaved);
+      setSavesCount(currentSaveCount);
+      const oldSavedRecipes = { 
+        ...currentSaved, 
+        [id]: currentIsSaved,
+        [`count_${id}`]: currentSaveCount
+      };
+      localStorage.setItem("savedRecipes", JSON.stringify(oldSavedRecipes));
+      console.error("Save error:", error);
+    } finally {
+      setIsSaveLoading(false);
     }
   };
 
@@ -156,7 +227,6 @@ export default function RecipeDetail() {
                     {detailRecipe.title}
                   </h1>
 
-                  {/* Кнопки редактирования и удаления — только для автора */}
                   {currentUserId === detailRecipe.author && (
                     <div className="flex">
                       <Link to={`/recipe/${id}/edit/`}>
@@ -208,13 +278,12 @@ export default function RecipeDetail() {
                 <div className="mt-2 flex sm:flex-col1">
                   <button
                     type="button"
-                    className="group py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+                    disabled={isSaveLoading}
+                    className="group py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500 disabled:opacity-50"
                     onClick={handleSave}
                   >
                     <BookmarkIcon
-                      className={`h-6 w-6 transition-colors ${
-                        savedRecipes[id] ? "text-teal-500 fill-current" : ""
-                      }`}
+                      className={`h-6 w-6 transition-colors ${isSaved ? "text-teal-500 fill-current" : ""}`}
                       aria-hidden="true"
                     />
                     <p className="hidden ml-1 group-hover:block">Save</p>
@@ -222,15 +291,15 @@ export default function RecipeDetail() {
                   </button>
                   <button
                     type="button"
-                    className="group py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+                    disabled={isLikeLoading}
+                    className="group py-3 px-3 rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-500 disabled:opacity-50"
                     onClick={handleLike}
                   >
-                    <HeartIcon
-                      className={`h-6 w-6 transition-colors ${
-                        likedRecipes[id] ? "text-red-500 fill-current" : ""
-                      }`}
-                      aria-hidden="true"
-                    />
+                    {isLiked ? (
+                      <HeartSolid className="h-6 w-6 text-red-500" aria-hidden="true" />
+                    ) : (
+                      <HeartIcon className="h-6 w-6 transition-colors" aria-hidden="true" />
+                    )}
                     <p className="hidden ml-1 group-hover:block">Like</p>
                     <span className="ml-2">{likesCount}</span>
                   </button>

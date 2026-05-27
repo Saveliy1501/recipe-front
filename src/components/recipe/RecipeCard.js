@@ -1,86 +1,93 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { HeartIcon, BookmarkIcon } from "@heroicons/react/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/solid";
 import { likeRecipe, unlikeRecipe, saveRecipe, removeSavedRecipe } from "../../redux/actions/recipes";
-import { usePersistedState } from "../../hooks/usePersistedState";
 import QuickView from "./QuickView";
 
 export default function RecipeCard({ recipes, quickview }) {
   const [open, setOpen] = useState(false);
-  const [id, setId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const [loadingStates, setLoadingStates] = useState({});
+  const [forceUpdate, setForceUpdate] = useState(0); // Для принудительного обновления
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
   const currentUserId = user?.id;
 
-  const [likedRecipes, setLikedRecipes] = usePersistedState("likedRecipes", {});
-  const [savedRecipes, setSavedRecipes] = usePersistedState("savedRecipes", {});
-  
-  const [localLikes, setLocalLikes] = useState({});
-  const [localSaves, setLocalSaves] = useState({});
+  // Функции для работы с localStorage
+  const getLikedRecipes = () => JSON.parse(localStorage.getItem("likedRecipes")) || {};
+  const getSavedRecipes = () => JSON.parse(localStorage.getItem("savedRecipes")) || {};
 
-  useEffect(() => {
-    if (recipes && recipes.length > 0) {
-      const likesMap = {};
-      const savesMap = {};
-      recipes.forEach(recipe => {
-        likesMap[recipe.id] = recipe.total_number_of_likes || 0;
-        savesMap[recipe.id] = recipe.total_number_of_bookmarks || 0;
-      });
-      setLocalLikes(likesMap);
-      setLocalSaves(savesMap);
-    }
-  }, [recipes]);
+  // Функция для обновления счетчиков в UI
+  const refreshUI = () => {
+    setForceUpdate(prev => prev + 1);
+  };
 
-  const handleLike = async (recipeId) => {
+  const handleLike = async (recipeId, currentIsLiked) => {
     if (loadingStates[recipeId]) return;
     
-    const currentIsLiked = likedRecipes[recipeId] || false;
-    const currentLikeCount = localLikes[recipeId] !== undefined ? localLikes[recipeId] : 0;
-    
-    setLoadingStates(prev => ({ ...prev, [recipeId]: true }));
-    
+    const currentLiked = getLikedRecipes();
+    const currentLikeCount = currentLiked[`count_${recipeId}`] || (recipes?.find(r => r.id === recipeId)?.total_number_of_likes || 0);
     const newIsLiked = !currentIsLiked;
     const newLikeCount = newIsLiked ? currentLikeCount + 1 : Math.max(currentLikeCount - 1, 0);
     
-    setLikedRecipes(prev => ({ ...prev, [recipeId]: newIsLiked }));
-    setLocalLikes(prev => ({ ...prev, [recipeId]: newLikeCount }));
+    setLoadingStates(prev => ({ ...prev, [recipeId]: true }));
+    
+    // Обновляем localStorage: статус и счетчик
+    const newLikedRecipes = { 
+      ...currentLiked, 
+      [recipeId]: newIsLiked,
+      [`count_${recipeId}`]: newLikeCount
+    };
+    localStorage.setItem("likedRecipes", JSON.stringify(newLikedRecipes));
+    
+    // Принудительно обновляем UI
+    refreshUI();
     
     try {
-      // Вызываем action и ждем его завершения
       if (currentIsLiked) {
         await dispatch(unlikeRecipe(recipeId));
       } else {
         await dispatch(likeRecipe(recipeId));
       }
-      // Здесь можно обновить счетчики из ответа сервера, если нужно
     } catch (error) {
-      // Откат при ошибке
-      setLikedRecipes(prev => ({ ...prev, [recipeId]: currentIsLiked }));
-      setLocalLikes(prev => ({ ...prev, [recipeId]: currentLikeCount }));
+      // Откат
+      const oldLikedRecipes = { 
+        ...currentLiked, 
+        [recipeId]: currentIsLiked,
+        [`count_${recipeId}`]: currentLikeCount
+      };
+      localStorage.setItem("likedRecipes", JSON.stringify(oldLikedRecipes));
+      refreshUI();
       console.error("Like/Unlike error:", error);
     } finally {
       setLoadingStates(prev => ({ ...prev, [recipeId]: false }));
     }
   };
 
-  const handleSave = async (recipeId) => {
+  const handleSave = async (recipeId, currentIsSaved) => {
     if (!currentUserId) return;
     if (loadingStates[`save_${recipeId}`]) return;
     
-    const currentIsSaved = savedRecipes[recipeId] || false;
-    const currentSaveCount = localSaves[recipeId] !== undefined ? localSaves[recipeId] : 0;
-    
-    setLoadingStates(prev => ({ ...prev, [`save_${recipeId}`]: true }));
-    
+    const currentSaved = getSavedRecipes();
+    const currentSaveCount = currentSaved[`count_${recipeId}`] || (recipes?.find(r => r.id === recipeId)?.total_number_of_bookmarks || 0);
     const newIsSaved = !currentIsSaved;
     const newSaveCount = newIsSaved ? currentSaveCount + 1 : Math.max(currentSaveCount - 1, 0);
     
-    setSavedRecipes(prev => ({ ...prev, [recipeId]: newIsSaved }));
-    setLocalSaves(prev => ({ ...prev, [recipeId]: newSaveCount }));
+    setLoadingStates(prev => ({ ...prev, [`save_${recipeId}`]: true }));
+    
+    // Обновляем localStorage: статус и счетчик
+    const newSavedRecipes = { 
+      ...currentSaved, 
+      [recipeId]: newIsSaved,
+      [`count_${recipeId}`]: newSaveCount
+    };
+    localStorage.setItem("savedRecipes", JSON.stringify(newSavedRecipes));
+    
+    // Принудительно обновляем UI
+    refreshUI();
     
     try {
       if (currentIsSaved) {
@@ -89,13 +96,31 @@ export default function RecipeCard({ recipes, quickview }) {
         await dispatch(saveRecipe(currentUserId, recipeId));
       }
     } catch (error) {
-      setSavedRecipes(prev => ({ ...prev, [recipeId]: currentIsSaved }));
-      setLocalSaves(prev => ({ ...prev, [recipeId]: currentSaveCount }));
+      // Откат
+      const oldSavedRecipes = { 
+        ...currentSaved, 
+        [recipeId]: currentIsSaved,
+        [`count_${recipeId}`]: currentSaveCount
+      };
+      localStorage.setItem("savedRecipes", JSON.stringify(oldSavedRecipes));
+      refreshUI();
       console.error("Save/Remove error:", error);
     } finally {
       setLoadingStates(prev => ({ ...prev, [`save_${recipeId}`]: false }));
     }
   };
+
+  const openQuickView = (recipe) => {
+    setSelectedId(recipe.id);
+    setOpen(true);
+  };
+
+  if (!recipes || recipes.length === 0) {
+    return null;
+  }
+
+  const likedRecipes = getLikedRecipes();
+  const savedRecipes = getSavedRecipes();
 
   return (
     <>
@@ -105,8 +130,12 @@ export default function RecipeCard({ recipes, quickview }) {
           const isSaved = savedRecipes[recipe.id] || false;
           const isLikeLoading = loadingStates[recipe.id] || false;
           const isSaveLoading = loadingStates[`save_${recipe.id}`] || false;
-          const likeCount = localLikes[recipe.id] !== undefined ? localLikes[recipe.id] : (recipe.total_number_of_likes || 0);
-          const saveCount = localSaves[recipe.id] !== undefined ? localSaves[recipe.id] : (recipe.total_number_of_bookmarks || 0);
+          const likeCount = likedRecipes[`count_${recipe.id}`] !== undefined 
+            ? likedRecipes[`count_${recipe.id}`] 
+            : (recipe.total_number_of_likes || 0);
+          const saveCount = savedRecipes[`count_${recipe.id}`] !== undefined 
+            ? savedRecipes[`count_${recipe.id}`] 
+            : (recipe.total_number_of_bookmarks || 0);
           
           return (
             <div key={recipe.id} className="bg-white overflow-hidden shadow rounded-lg">
@@ -141,10 +170,7 @@ export default function RecipeCard({ recipes, quickview }) {
                   {quickview ? (
                     <button
                       className="font-medium text-teal-700 hover:text-teal-900"
-                      onClick={() => {
-                        setOpen(true);
-                        setId(recipe.id);
-                      }}
+                      onClick={() => openQuickView(recipe)}
                     >
                       Quick View
                     </button>
@@ -158,7 +184,7 @@ export default function RecipeCard({ recipes, quickview }) {
                 <div className="flex space-x-3 items-center">
                   <button 
                     type="button" 
-                    onClick={() => handleLike(recipe.id)} 
+                    onClick={() => handleLike(recipe.id, isLiked)} 
                     disabled={isLikeLoading}
                     className="focus:outline-none flex items-center space-x-1 group disabled:opacity-50"
                   >
@@ -174,7 +200,7 @@ export default function RecipeCard({ recipes, quickview }) {
                   
                   <button 
                     type="button" 
-                    onClick={() => handleSave(recipe.id)} 
+                    onClick={() => handleSave(recipe.id, isSaved)} 
                     disabled={isSaveLoading}
                     className="focus:outline-none flex items-center space-x-1 group disabled:opacity-50"
                   >
@@ -191,7 +217,14 @@ export default function RecipeCard({ recipes, quickview }) {
           );
         })}
       </div>
-      {open && <QuickView open={open} setOpen={setOpen} id={id} />}
+      {open && (
+        <QuickView 
+          open={open} 
+          setOpen={setOpen} 
+          id={selectedId}
+          onRefresh={refreshUI}
+        />
+      )}
     </>
   );
 }

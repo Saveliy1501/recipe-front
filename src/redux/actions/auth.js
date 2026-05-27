@@ -6,6 +6,7 @@ import {
   LOGOUT_SUCCESS,
   GET_ERRORS,
   CLEAR_MESSAGE,
+  SYNC_USER_DATA,
 } from "./types";
 import axiosInstance from "../../utils/axios";
 
@@ -36,6 +37,8 @@ export const register =
             type: CLEAR_MESSAGE,
             payload: res.data,
           });
+          // После регистрации синхронизируем данные
+          dispatch(syncUserData());
         })
         .catch((err) => {
           dispatch({
@@ -79,6 +82,8 @@ export const login =
           type: CLEAR_MESSAGE,
           payload: res.data,
         });
+        // После входа синхронизируем данные
+        dispatch(syncUserData());
       })
       .catch((err) => {
         dispatch({
@@ -99,6 +104,9 @@ export const logout =
     axiosInstance
       .post("/user/logout/", body, tokenConfig(getState))
       .then((res) => {
+        // Очищаем localStorage при выходе
+        localStorage.removeItem("likedRecipes");
+        localStorage.removeItem("savedRecipes");
         dispatch({
           type: LOGOUT_SUCCESS,
         });
@@ -110,6 +118,37 @@ export const logout =
         });
       });
   };
+
+// НОВЫЙ ACTION - синхронизация данных пользователя
+export const syncUserData = () => async (dispatch, getState) => {
+  try {
+    const res = await axiosInstance.get("/user/sync/", tokenConfig(getState));
+    
+    // Сохраняем в localStorage
+    const likedRecipes = {};
+    res.data.liked_recipes.forEach(recipeId => {
+      likedRecipes[recipeId] = true;
+    });
+    
+    const savedRecipes = {};
+    res.data.saved_recipes.forEach(recipeId => {
+      savedRecipes[recipeId] = true;
+    });
+    
+    localStorage.setItem("likedRecipes", JSON.stringify(likedRecipes));
+    localStorage.setItem("savedRecipes", JSON.stringify(savedRecipes));
+    
+    dispatch({
+      type: SYNC_USER_DATA,
+      payload: {
+        likedRecipes,
+        savedRecipes,
+      },
+    });
+  } catch (err) {
+    console.error("Sync error:", err);
+  }
+};
 
 export const tokenConfig = (getState) => {
   const token = getState().auth.token;

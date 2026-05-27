@@ -5,62 +5,97 @@ import { Dialog, Transition } from "@headlessui/react";
 import { XIcon, HeartIcon, BookmarkIcon, ClockIcon } from "@heroicons/react/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/solid";
 import { likeRecipe, unlikeRecipe, saveRecipe, removeSavedRecipe } from "../../redux/actions/recipes";
-import { usePersistedState } from "../../hooks/usePersistedState";
 
-export default function QuickView({ open, setOpen, id }) {
-  const { recipes, recommendations } = useSelector((state) => state.recipes);
+export default function QuickView({ open, setOpen, id, onRefresh }) {
+  const { recipes, recommendations, detailRecipe } = useSelector((state) => state.recipes);
   const { user } = useSelector((state) => state.user);
   const currentUserId = user?.id;
   const dispatch = useDispatch();
 
-  // Ищем рецепт сначала в recipes, потом в recommendations
-  const recipe = recipes?.find((r) => r.id === id) || recommendations?.find((r) => r.id === id);
+  const recipe = recipes?.find((r) => r.id === id) || 
+                  recommendations?.find((r) => r.id === id) ||
+                  (detailRecipe?.id === id ? detailRecipe : null);
   
-  const [likedRecipes, setLikedRecipes] = usePersistedState("likedRecipes", {});
-  const [savedRecipes, setSavedRecipes] = usePersistedState("savedRecipes", {});
-  
-  const [likesCount, setLikesCount] = useState(0);
-  const [savesCount, setSavesCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Обновляем счетчики при изменении рецепта
+  const getLikedRecipes = () => JSON.parse(localStorage.getItem("likedRecipes")) || {};
+  const getSavedRecipes = () => JSON.parse(localStorage.getItem("savedRecipes")) || {};
+
+  // Получаем актуальные значения из localStorage
+  const likedRecipes = getLikedRecipes();
+  const savedRecipes = getSavedRecipes();
+  
+  const currentIsLiked = likedRecipes[id] || false;
+  const currentIsSaved = savedRecipes[id] || false;
+  const currentLikeCount = likedRecipes[`count_${id}`] !== undefined 
+    ? likedRecipes[`count_${id}`] 
+    : (recipe?.total_number_of_likes || 0);
+  const currentSaveCount = savedRecipes[`count_${id}`] !== undefined 
+    ? savedRecipes[`count_${id}`] 
+    : (recipe?.total_number_of_bookmarks || 0);
+
+  const [localIsLiked, setLocalIsLiked] = useState(currentIsLiked);
+  const [localIsSaved, setLocalIsSaved] = useState(currentIsSaved);
+  const [localLikesCount, setLocalLikesCount] = useState(currentLikeCount);
+  const [localSavesCount, setLocalSavesCount] = useState(currentSaveCount);
+
+  // Синхронизация с localStorage при открытии или обновлении
   useEffect(() => {
-    if (recipe) {
-      setLikesCount(recipe.total_number_of_likes || 0);
-      setSavesCount(recipe.total_number_of_bookmarks || 0);
+    if (open && recipe) {
+      const liked = getLikedRecipes();
+      const saved = getSavedRecipes();
+      setLocalIsLiked(liked[id] || false);
+      setLocalIsSaved(saved[id] || false);
+      setLocalLikesCount(liked[`count_${id}`] !== undefined ? liked[`count_${id}`] : (recipe.total_number_of_likes || 0));
+      setLocalSavesCount(saved[`count_${id}`] !== undefined ? saved[`count_${id}`] : (recipe.total_number_of_bookmarks || 0));
     }
-  }, [recipe]);
-
-  // Получаем текущий статус лайка/сохранения
-  const isLiked = likedRecipes[id] || false;
-  const isSaved = savedRecipes[id] || false;
+  }, [open, recipe, id, forceUpdate]);
 
   if (!recipe) return null;
 
   const handleLike = async () => {
     if (isLikeLoading) return;
     
-    const currentIsLiked = isLiked;
-    const currentLikeCount = likesCount;
+    const newIsLiked = !localIsLiked;
+    const newLikeCount = newIsLiked ? localLikesCount + 1 : Math.max(localLikesCount - 1, 0);
     
     setIsLikeLoading(true);
     
-    const newIsLiked = !currentIsLiked;
-    const newLikeCount = newIsLiked ? currentLikeCount + 1 : Math.max(currentLikeCount - 1, 0);
+    // Обновляем UI
+    setLocalIsLiked(newIsLiked);
+    setLocalLikesCount(newLikeCount);
     
-    setLikedRecipes(prev => ({ ...prev, [id]: newIsLiked }));
-    setLikesCount(newLikeCount);
+    // Обновляем localStorage
+    const currentLiked = getLikedRecipes();
+    const newLikedRecipes = { 
+      ...currentLiked, 
+      [id]: newIsLiked,
+      [`count_${id}`]: newLikeCount
+    };
+    localStorage.setItem("likedRecipes", JSON.stringify(newLikedRecipes));
+    
+    // Уведомляем родителя для обновления карточки
+    if (onRefresh) onRefresh();
     
     try {
-      if (currentIsLiked) {
+      if (localIsLiked) {
         await dispatch(unlikeRecipe(id));
       } else {
         await dispatch(likeRecipe(id));
       }
     } catch (error) {
-      setLikedRecipes(prev => ({ ...prev, [id]: currentIsLiked }));
-      setLikesCount(currentLikeCount);
+      // Откат
+      setLocalIsLiked(localIsLiked);
+      setLocalLikesCount(localLikesCount);
+      const oldLikedRecipes = { 
+        ...currentLiked, 
+        [id]: localIsLiked,
+        [`count_${id}`]: localLikesCount
+      };
+      localStorage.setItem("likedRecipes", JSON.stringify(oldLikedRecipes));
+      if (onRefresh) onRefresh();
       console.error("Like error:", error);
     } finally {
       setIsLikeLoading(false);
@@ -70,26 +105,44 @@ export default function QuickView({ open, setOpen, id }) {
   const handleSave = async () => {
     if (!currentUserId || isSaveLoading) return;
     
-    const currentIsSaved = isSaved;
-    const currentSaveCount = savesCount;
+    const newIsSaved = !localIsSaved;
+    const newSaveCount = newIsSaved ? localSavesCount + 1 : Math.max(localSavesCount - 1, 0);
     
     setIsSaveLoading(true);
     
-    const newIsSaved = !currentIsSaved;
-    const newSaveCount = newIsSaved ? currentSaveCount + 1 : Math.max(currentSaveCount - 1, 0);
+    // Обновляем UI
+    setLocalIsSaved(newIsSaved);
+    setLocalSavesCount(newSaveCount);
     
-    setSavedRecipes(prev => ({ ...prev, [id]: newIsSaved }));
-    setSavesCount(newSaveCount);
+    // Обновляем localStorage
+    const currentSaved = getSavedRecipes();
+    const newSavedRecipes = { 
+      ...currentSaved, 
+      [id]: newIsSaved,
+      [`count_${id}`]: newSaveCount
+    };
+    localStorage.setItem("savedRecipes", JSON.stringify(newSavedRecipes));
+    
+    // Уведомляем родителя для обновления карточки
+    if (onRefresh) onRefresh();
     
     try {
-      if (currentIsSaved) {
+      if (localIsSaved) {
         await dispatch(removeSavedRecipe(currentUserId, id));
       } else {
         await dispatch(saveRecipe(currentUserId, id));
       }
     } catch (error) {
-      setSavedRecipes(prev => ({ ...prev, [id]: currentIsSaved }));
-      setSavesCount(currentSaveCount);
+      // Откат
+      setLocalIsSaved(localIsSaved);
+      setLocalSavesCount(localSavesCount);
+      const oldSavedRecipes = { 
+        ...currentSaved, 
+        [id]: localIsSaved,
+        [`count_${id}`]: localSavesCount
+      };
+      localStorage.setItem("savedRecipes", JSON.stringify(oldSavedRecipes));
+      if (onRefresh) onRefresh();
       console.error("Save error:", error);
     } finally {
       setIsSaveLoading(false);
@@ -163,10 +216,10 @@ export default function QuickView({ open, setOpen, id }) {
                           onClick={handleSave}
                         >
                           <BookmarkIcon
-                            className={`h-6 w-6 transition-colors ${isSaved ? "text-teal-500 fill-current" : ""}`}
+                            className={`h-6 w-6 transition-colors ${localIsSaved ? "text-teal-500 fill-current" : ""}`}
                             aria-hidden="true"
                           />
-                          <span className="text-sm text-gray-600">{savesCount}</span>
+                          <span className="text-sm text-gray-600">{localSavesCount}</span>
                           <p className="hidden ml-1 group-hover:block">Save</p>
                         </button>
                         <button
@@ -175,12 +228,12 @@ export default function QuickView({ open, setOpen, id }) {
                           className="group py-3 px-3 rounded-md flex items-center justify-center space-x-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 disabled:opacity-50"
                           onClick={handleLike}
                         >
-                          {isLiked ? (
+                          {localIsLiked ? (
                             <HeartSolid className="h-6 w-6 text-red-500" aria-hidden="true" />
                           ) : (
                             <HeartIcon className="h-6 w-6 transition-colors" aria-hidden="true" />
                           )}
-                          <span className="text-sm text-gray-600">{likesCount}</span>
+                          <span className="text-sm text-gray-600">{localLikesCount}</span>
                           <p className="hidden ml-1 group-hover:block">Like</p>
                         </button>
                       </div>

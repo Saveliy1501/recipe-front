@@ -8,17 +8,22 @@ export default function RecipeCreate() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
-  // Берём состояние из Redux — создан ли рецепт, есть ли ошибка
   const { success } = useSelector((state) => state.recipes);
+  const { token } = useSelector((state) => state.auth); // Добавить получение токена
 
   const handleFormSubmit = (formData) => {
-    dispatch(createRecipe(formData,navigate));
+    // Проверка наличия токена
+    if (!token) {
+      console.error("No authentication token");
+      navigate("/login");
+      return;
+    }
+    dispatch(createRecipe(formData, navigate));
   };
 
-  // Следим за успешным созданием
   useEffect(() => {
     if (success) {
-      navigate("/dashboard");  // или "/recipe" — куда хочешь
+      navigate("/dashboard");
     }
   }, [success, navigate]);
 

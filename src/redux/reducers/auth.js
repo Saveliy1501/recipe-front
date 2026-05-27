@@ -5,6 +5,7 @@ import {
   LOGIN_SUCCESS,
   LOGIN_FAIL,
   LOGOUT_SUCCESS,
+  SYNC_USER_DATA,
 } from "../actions/types";
 
 const initialState = {
@@ -12,6 +13,8 @@ const initialState = {
   isAuthenticated: null,
   isLoading: false,
   user: null,
+  likedRecipes: JSON.parse(localStorage.getItem("likedRecipes")) || {},
+  savedRecipes: JSON.parse(localStorage.getItem("savedRecipes")) || {},
 };
 
 export default function (state = initialState, action) {
@@ -26,16 +29,26 @@ export default function (state = initialState, action) {
         isLoading: false,
         token: action.payload.tokens,
       };
+    case SYNC_USER_DATA:
+      return {
+        ...state,
+        likedRecipes: action.payload.likedRecipes,
+        savedRecipes: action.payload.savedRecipes,
+      };
     case LOGIN_FAIL:
     case LOGOUT_SUCCESS:
     case REGISTER_FAIL:
       localStorage.removeItem("recipe");
+      localStorage.removeItem("likedRecipes");
+      localStorage.removeItem("savedRecipes");
       return {
         ...state,
         token: null,
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        likedRecipes: {},
+        savedRecipes: {},
       };
     default:
       return state;
