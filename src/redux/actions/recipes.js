@@ -10,9 +10,12 @@ import {
   SAVE_RECIPE,
   UNLIKE_RECIPE,
   REMOVE_SAVED_RECIPE,
-  GET_RECOMMENDATIONS, 
-  LOAD_USER_LIKES,     
-  LOAD_USER_SAVES,
+  GET_RECOMMENDATIONS,
+  UPDATE_LIKE_COUNT,
+  UPDATE_SAVE_COUNT,
+  GET_COMMENTS,
+  ADD_COMMENT,
+  DELETE_COMMENT,
 } from "./types";
 import axiosInstance from "../../utils/axios";
 import { tokenConfig } from "./auth";
@@ -164,14 +167,13 @@ export const unlikeRecipe = (id) => async (dispatch, getState) => {
   }
 };
 
-// ИСПРАВЛЕННЫЙ saveRecipe - возвращает Promise
 export const saveRecipe = (user_id, id) => async (dispatch, getState) => {
   try {
     const body = JSON.stringify({ id });
     const res = await axiosInstance.post(`/user/profile/${user_id}/bookmarks/`, body, tokenConfig(getState));
     dispatch({
       type: SAVE_RECIPE,
-      payload: { id, user_id },  // ВАЖНО: передаем id рецепта
+      payload: res.data,
     });
     return { id, user_id };
   } catch (err) {
@@ -183,7 +185,6 @@ export const saveRecipe = (user_id, id) => async (dispatch, getState) => {
   }
 };
 
-// ИСПРАВЛЕННЫЙ removeSavedRecipe - возвращает Promise
 export const removeSavedRecipe = (user_id, recipe_id) => async (dispatch, getState) => {
   try {
     const res = await axiosInstance.delete(`/user/profile/${user_id}/bookmarks/?recipe_id=${recipe_id}`, tokenConfig(getState));
@@ -216,6 +217,7 @@ export const getRecommendations = () => async (dispatch, getState) => {
   }
 };
 
+// Экшен для обновления счетчика лайков
 export const updateLikeCount = (recipeId, newCount) => ({
   type: UPDATE_LIKE_COUNT,
   payload: { recipeId, newCount }
@@ -227,3 +229,59 @@ export const updateSaveCount = (recipeId, newCount) => ({
   payload: { recipeId, newCount }
 });
 
+// НОВЫЕ ЭКШЕНЫ ДЛЯ КОММЕНТАРИЕВ
+export const getComments = (recipeId) => async (dispatch, getState) => {
+  try {
+    const res = await axiosInstance.get(`/recipe/${recipeId}/comments/`, tokenConfig(getState));
+    dispatch({
+      type: GET_COMMENTS,
+      payload: { recipeId, comments: res.data },
+    });
+    return res.data;
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+    throw err;
+  }
+};
+
+export const addComment = (recipeId, text) => async (dispatch, getState) => {
+  try {
+    // Отправляем и recipe_id, и text
+    const body = JSON.stringify({ 
+      recipe: recipeId,  // Добавляем recipe
+      text: text 
+    });
+    const res = await axiosInstance.post(`/recipe/${recipeId}/comments/`, body, tokenConfig(getState));
+    dispatch({
+      type: ADD_COMMENT,
+      payload: { recipeId, comment: res.data },
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Add comment error:", err.response?.data);
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+    throw err;
+  }
+};
+
+export const deleteComment = (commentId, recipeId) => async (dispatch, getState) => {
+  try {
+    await axiosInstance.delete(`/recipe/comments/${commentId}/`, tokenConfig(getState));
+    dispatch({
+      type: DELETE_COMMENT,
+      payload: { commentId, recipeId },
+    });
+  } catch (err) {
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+    throw err;
+  }
+};

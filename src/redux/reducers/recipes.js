@@ -9,6 +9,7 @@ import {
   DELETE_RECIPE,
   GET_RECOMMENDATIONS,
   LOGOUT_SUCCESS,
+  CLEAR_RECIPE_SUCCESS,
 } from "../actions/types";
 
 const initialState = {
@@ -77,6 +78,11 @@ export default function (state = initialState, action) {
     case LOGOUT_SUCCESS:
       return {
         ...initialState,
+      };
+    case CLEAR_RECIPE_SUCCESS:
+      return {
+        ...state,
+        success: false,
       };
     default:
       return state;

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import Comments from "./Comments";
 
 import { Disclosure } from "@headlessui/react";
 import {
@@ -369,6 +370,10 @@ export default function RecipeDetail() {
                     ))}
                   </div>
                 </section>
+
+                {/* КОММЕНТАРИИ - добавлено здесь */}
+                <Comments recipeId={id} />
+                
               </div>
             </div>
           </div>
