@@ -96,28 +96,35 @@ export const login =
       });
   };
 
-export const logout =
-  ({ refresh }) =>
-  (dispatch, getState) => {
+export const logout = ({ refresh }) => async (dispatch, getState) => {
+  try {
     const body = JSON.stringify({ refresh });
-
-    axiosInstance
-      .post("/user/logout/", body, tokenConfig(getState))
-      .then((res) => {
-        // Очищаем localStorage при выходе
-        localStorage.removeItem("likedRecipes");
-        localStorage.removeItem("savedRecipes");
-        dispatch({
-          type: LOGOUT_SUCCESS,
-        });
-      })
-      .catch((err) => {
-        dispatch({
-          type: GET_ERRORS,
-          payload: err.response,
-        });
-      });
-  };
+    await axiosInstance.post("/user/logout/", body, tokenConfig(getState));
+    
+    // Очищаем localStorage
+    localStorage.removeItem("recipe");
+    localStorage.removeItem("likedRecipes");
+    localStorage.removeItem("savedRecipes");
+    
+    dispatch({
+      type: LOGOUT_SUCCESS,
+    });
+  } catch (err) {
+    // Даже если сервер вернул ошибку, все равно очищаем локальные данные
+    localStorage.removeItem("recipe");
+    localStorage.removeItem("likedRecipes");
+    localStorage.removeItem("savedRecipes");
+    
+    dispatch({
+      type: LOGOUT_SUCCESS,
+    });
+    
+    dispatch({
+      type: GET_ERRORS,
+      payload: err.response,
+    });
+  }
+};
 
 // НОВЫЙ ACTION - синхронизация данных пользователя
 export const syncUserData = () => async (dispatch, getState) => {

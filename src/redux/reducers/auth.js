@@ -36,11 +36,20 @@ export default function (state = initialState, action) {
         savedRecipes: action.payload.savedRecipes,
       };
     case LOGIN_FAIL:
-    case LOGOUT_SUCCESS:
     case REGISTER_FAIL:
       localStorage.removeItem("recipe");
       localStorage.removeItem("likedRecipes");
       localStorage.removeItem("savedRecipes");
+      return {
+        ...state,
+        token: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        likedRecipes: {},
+        savedRecipes: {},
+      };
+    case LOGOUT_SUCCESS:
       return {
         ...state,
         token: null,

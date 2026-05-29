@@ -77,7 +77,7 @@ export default function Header() {
                   <div className="flex items-center px-6 py-4 md:max-w-3xl md:mx-auto lg:max-w-none lg:mx-0 xl:px-0">
                     <div className="w-full">
                       <label htmlFor="search" className="sr-only">
-                        Search
+                        Поиск назавания, описанию и ингридиентам
                       </label>
                       <div className="relative">
                         <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
@@ -90,7 +90,7 @@ export default function Header() {
                           id="search"
                           name="search"
                           className="block w-full bg-white border border-gray-300 rounded-md py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:outline-none focus:text-gray-900 focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
-                          placeholder="Search"
+                          placeholder="Поиск по назаванию, описанию и ингридиентам"
                           type="search"
                           value={searchValue}
                           onChange={handleSearchChange}
@@ -180,7 +180,7 @@ export default function Header() {
                       to="/login"
                       className="ml-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-400 hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-200"
                     >
-                      Sign in
+                      Войти
                     </Link>
                   )}
 
@@ -189,7 +189,7 @@ export default function Header() {
                       to="/register"
                       className="ml-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
                     >
-                      Sign Up
+                      Регистрации
                     </Link>
                   )}
                   {token && (
@@ -197,7 +197,7 @@ export default function Header() {
                       to="/recipe/create"
                       className="ml-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
                     >
-                      Create Recipe
+                      Создать рецепт
                     </Link>
                   )}
                 </div>
@@ -211,7 +211,7 @@ export default function Header() {
                     to="/login"
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-teal-600 hover:bg-teal-700"
                   >
-                    Sign in
+                    Войти
                   </Link>
                 )}
 
@@ -220,7 +220,7 @@ export default function Header() {
                     to="/register"
                     className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-teal-600 hover:bg-teal-700"
                   >
-                    Sign Up
+                    Регистрации
                   </Link>
                 )}
                 {token && (

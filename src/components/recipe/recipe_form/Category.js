@@ -11,20 +11,20 @@ const categories = [
     title: "Appetizer",
     description:
       "While eating your appetizer, don't be concerned with dessert. ",
-    users: "50 recipes",
+    users: "",
   },
   {
     id: 2,
     title: "Dessert",
     description:
       "You can’t buy happiness, but you can buy dessert :) same thing.",
-    users: "100 recipes",
+    users: "",
   },
   {
     id: 3,
     title: "Main Dish",
     description: "I am not an encore, not a pudding, I am the main dish.",
-    users: "270 recipes",
+    users: "",
   },
 ];
 

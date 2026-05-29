@@ -65,7 +65,7 @@ export default function Landing() {
               </svg>
             </div>
             <h6 className="mb-3 text-xl font-bold leading-5">
-              Create a recipe
+              Создавай рецепты
             </h6>
             <p className="mb-3 text-sm text-gray-900">
               Mix together 1 large smile, 2 cups of sweetness and positivity , A
@@ -90,7 +90,7 @@ export default function Landing() {
               </svg>
             </div>
             <h6 className="mb-3 text-xl font-bold leading-5">
-              Get other people's recipes
+              Смотри рецепты других людей
             </h6>
             <p className="mb-3 text-sm text-gray-900">
               Food for us comes from our relatives, whether they have wings or
@@ -115,7 +115,7 @@ export default function Landing() {
                 />
               </svg>
             </div>
-            <h6 className="mb-3 text-xl font-bold leading-5">Like a recipe</h6>
+            <h6 className="mb-3 text-xl font-bold leading-5">Лайкай и комментируй рецепты</h6>
             <p className="mb-3 text-sm text-gray-900">
               This magical, marvelous food on our plate, this sustenance we
               absorb, has a story to tell. It has a journey. It leaves a
@@ -138,7 +138,7 @@ export default function Landing() {
                 />
               </svg>
             </div>
-            <h6 className="mb-3 text-xl font-bold leading-5">Save a recipe</h6>
+            <h6 className="mb-3 text-xl font-bold leading-5">Сохраняй рецепты в избранное</h6>
             <p className="mb-3 text-sm text-gray-900">
               Save your favorite recipes. A recipe has no soul. You as the cook
               must bring soul to the recipe.

@@ -1,5 +1,6 @@
 import { Fragment, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationIcon } from "@heroicons/react/outline";
 
@@ -7,22 +8,30 @@ import { logout } from "../../redux/actions/auth";
 
 export default function Logout({ modal, setModal }) {
   const cancelButtonRef = useRef(null);
-
-  const { token } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const { token } = useSelector((state) => state.auth);
+
   useEffect(() => {
-    if (!token) {
+    if (!token && modal) {
+      setModal(false);
+      navigate("/");
+    }
+  }, [token, modal, setModal, navigate]);
+
+  const handleLogoutClick = async () => {
+    const refreshToken = JSON.parse(localStorage.getItem("recipe"))?.refresh;
+    if (refreshToken) {
+      await dispatch(logout({ refresh: refreshToken }));
+      // Принудительно очищаем localStorage
+      localStorage.removeItem("recipe");
+      localStorage.removeItem("likedRecipes");
+      localStorage.removeItem("savedRecipes");
+      // Переходим на главную
+      navigate("/");
       setModal(false);
     }
-  }, [token]);
-
-  const handleLogoutClick = () => {
-    dispatch(
-      logout({
-        refresh: JSON.parse(localStorage.getItem("recipe")).refresh,
-      })
-    );
   };
 
   return (
@@ -46,7 +55,6 @@ export default function Logout({ modal, setModal }) {
             <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
           </Transition.Child>
 
-          {/* This element is to trick the browser into centering the modal contents. */}
           <span
             className="hidden sm:inline-block sm:align-middle sm:h-screen"
             aria-hidden="true"
@@ -80,7 +88,7 @@ export default function Logout({ modal, setModal }) {
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
-                        Are you sure you want to log out ?
+                        Are you sure you want to log out?
                       </p>
                     </div>
                   </div>

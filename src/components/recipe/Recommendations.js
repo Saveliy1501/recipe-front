@@ -71,16 +71,16 @@ export default function Recommendations() {
         <div className="flex items-center space-x-3">
           <SparklesIcon className="h-6 w-6 text-teal-600" />
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Recommended for You</h2>
+            <h2 className="text-xl font-bold text-gray-900">Рекомендации для тебя</h2>
             <p className="text-sm text-gray-500 mt-0.5">{recommendationsMessage}</p>
             {recommendationsType === 'ingredient_based' && (
               <p className="text-xs text-teal-600 mt-1">
-                Based on ingredients from your saved recipes
+                Основано на твоем избранном
               </p>
             )}
             {recommendationsType === 'popular' && (
               <p className="text-xs text-teal-600 mt-1">
-                🔥 Popular recipes from the community
+                Основано на выборе комьюнити
               </p>
             )}
           </div>
